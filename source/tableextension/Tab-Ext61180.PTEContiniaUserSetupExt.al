@@ -1,4 +1,4 @@
-tableextension 61180 "PTE Language Code" extends 6086002
+tableextension 61180 "PTE Continia User Setup Ext." extends 6086002
 {
     fields
     {
