@@ -1,10 +1,10 @@
-pageextension 61180 "PTE ListLanguageCode" extends "CDC Continia User Setup List"
+pageextension 61181 "PTE CardLanguageCode" extends "CDC Continia User Setup Card"
 {
     layout
     {
-        addlast(Group)
+        addlast(General)
         {
-            field("PTE Language Code"; Rec."PTE Language Code")
+            field("PTE User Language Code"; Rec."PTE User Language Code")
             {
                 ToolTip = 'Specifies the preferred language code of the user.';
                 ApplicationArea = All;
