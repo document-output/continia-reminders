@@ -1,4 +1,4 @@
-codeunit 61181 "Big String Management"
+codeunit 61181 "DOADV Big String Management"
 {
     trigger OnRun()
     begin

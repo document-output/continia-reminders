@@ -1,8 +1,8 @@
-tableextension 61180 "PTE Continia User Setup Ext." extends 6086002
+tableextension 61180 "DOADV Continia User Setup Ext." extends "CTS-CBF Continia User Setup"
 {
     fields
     {
-        field(61180; "PTE User Language Code"; Code[20])
+        field(61180; "DOADV User Language Code"; Code[20])
         {
             DataClassification = ToBeClassified;
             TableRelation = Language.Code;

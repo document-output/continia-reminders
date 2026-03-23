@@ -1,4 +1,4 @@
-codeunit 61180 "Continia Reminders Functions"
+codeunit 61180 "DOADV DC Reminder Functions"
 {
     TableNo = 6175277;
     trigger OnRun()
@@ -61,7 +61,7 @@ codeunit 61180 "Continia Reminders Functions"
     procedure OnGetVariantRecord(TableNo: Integer; VAR VariantRecord: Variant; VAR IsHandled: Boolean)
     var
         myInt: Integer;
-        ContiniaUserSetup: Record 6086002;
+        ContiniaUserSetup: Record "CTS-CBF Continia User Setup";
 
     begin
         ContiniaUserSetup.FindSet();
@@ -71,7 +71,7 @@ codeunit 61180 "Continia Reminders Functions"
 
     procedure GetApprovalURL(var RecRef: RecordRef): Text[1024]
     var
-        ContiniaUserSetup: Record "CDC Continia User Setup";
+        ContiniaUserSetup: Record "CTS-CBF Continia User Setup";
         CDCApprovalManagement: Codeunit 6085722;
         DCAppMgt: Codeunit "CDC Approval Management";
     begin
@@ -101,18 +101,19 @@ codeunit 61180 "Continia Reminders Functions"
 
     procedure GetApprovalEntries(var RecRef: RecordRef): Text
     var
-        ContiniaUser: Record "CDC Continia User Setup";
+        ContiniaUser: Record "CTS-CBF Continia User Setup";
         ApprEntry: Record "Approval Entry";
         ApprEntry2: Record "Approval Entry";
         ApprovalSharing: Record "CDC Approval Sharing";
-        ContiniaUserSetup: Record "CDC Continia User Setup";
-        ContiniaUserSetup2: Record "CDC Continia User Setup";
-        DocumentHTML: Codeunit "Big String Management";
+        ContiniaUserSetup: Record "CTS-CBF Continia User Setup";
+        ContiniaUserSetup2: Record "CTS-CBF Continia User Setup";
+        DocumentHTML: Codeunit "CDC BigString Management";
         PurchHeader: Record "Purchase Header";
         PurchApprovalEMail: Codeunit "CDC Purch. Approval E-Mail";
-        TableRow: Codeunit "Big String Management";
+        TableRow: Codeunit "CDC BigString Management";
+
         DCAppMgt: Codeunit "CDC Approval Management";
-        HTML: Codeunit "Big String Management";
+        HTML: Codeunit "CDC BigString Management";
         ApprovalEntries: Text;
     begin
         RecRef.SetTable(ContiniaUserSetup);
@@ -169,7 +170,7 @@ codeunit 61180 "Continia Reminders Functions"
         EXIT(DocumentHTML.Text());
     END;
 
-    procedure CreateTableHeaderRow(var BigString: Codeunit "Big String Management")
+    procedure CreateTableHeaderRow(var BigString: Codeunit "CDC BigString Management")
     var
         CaptureMgnt: Codeunit "CDC Capture Management";
         LeftAlignedTd: Text[1024];
@@ -197,50 +198,55 @@ codeunit 61180 "Continia Reminders Functions"
         BigString.Append('</tr>');
     end;
 
-    procedure CreateTableRow(PurchHeader: Record "Purchase Header"; ApprEntry: Record "Approval Entry"; var BigString: Codeunit "Big String Management")
+    procedure CreateTableRow(PurchHeader: Record "Purchase Header"; ApprEntry: Record "Approval Entry"; var String: Text)
     var
         Currency: Record Currency;
         CaptureMgnt: Codeunit "CDC Capture Management";
-        LeftAlignedTd: Text[1024];
-        RightAlignedTd: Text[1024];
+        Handled: Boolean;
         TotalAmountExclVAT: Decimal;
         TotalAmountInclVAT: Decimal;
-        Handled: Boolean;
+        LeftAlignedTd: Text[1024];
+        RightAlignedTd: Text[1024];
     begin
-        CLEAR(BigString);
+        Handled := false;
+        //OnBeforeCreateTableRow2(PurchHeader, ApprEntry, String, Handled);
+        if Handled then
+            exit;
 
-        IF (PurchHeader."Document Type" = PurchHeader."Document Type"::Invoice) AND (PurchHeader."Due Date" <= TODAY) THEN BEGIN
+        String := '';
+
+        if (PurchHeader."Document Type" = PurchHeader."Document Type"::Invoice) and (PurchHeader."Due Date" <= Today) then begin
             LeftAlignedTd := Text006;
             RightAlignedTd := Text007;
-        END ELSE BEGIN
+        end else begin
             LeftAlignedTd := Text004;
             RightAlignedTd := Text005;
-        END;
+        end;
 
         TotalAmountExclVAT := ApprEntry.Amount;
-        TotalAmountInclVAT := GetAmountInclVAT(PurchHeader);
+        TotalAmountInclVAT := ApprEntry."CDC Amount Incl. VAT";
 
-        IF PurchHeader."Currency Code" = '' THEN
-            Currency.InitRoundingPrecision
-        ELSE
-            Currency.GET(PurchHeader."Currency Code");
+        if PurchHeader."Currency Code" = '' then
+            Currency.InitRoundingPrecision()
+        else
+            Currency.Get(PurchHeader."Currency Code");
 
-        WITH PurchHeader DO BEGIN
-            BigString.Append('<tr>');
-            IF "On Hold" = '' THEN
-                BigString.Append(CaptureMgnt.Replace(LeftAlignedTd, Text003, FORMAT("Document Type") + ' ' + "No.", FALSE))
-            ELSE
-                BigString.Append(CaptureMgnt.Replace(LeftAlignedTd, Text003, FORMAT("Document Type") + ' ' + "No." + ' ' + Text001, FALSE));
-            BigString.Append(CaptureMgnt.Replace(LeftAlignedTd, Text003, "Buy-from Vendor No." + ' - ' + "Buy-from Vendor Name", FALSE));
-            BigString.Append(CaptureMgnt.Replace(LeftAlignedTd, Text003, FORMAT("Document Date"), FALSE));
-            BigString.Append(CaptureMgnt.Replace(LeftAlignedTd, Text003, FORMAT("Due Date"), FALSE));
-            BigString.Append(CaptureMgnt.Replace(LeftAlignedTd, Text003, "Currency Code", FALSE));
-            BigString.Append(CaptureMgnt.Replace(RightAlignedTd, Text003,
-              FORMAT(TotalAmountExclVAT, 0, STRSUBSTNO('<Precision,%1><Standard Format,0>', Currency."Amount Decimal Places")), FALSE));
-            BigString.Append(CaptureMgnt.Replace(RightAlignedTd, Text003,
-              FORMAT(TotalAmountInclVAT, 0, STRSUBSTNO('<Precision,%1><Standard Format,0>', Currency."Amount Decimal Places")), FALSE));
-            BigString.Append('</tr>');
-        END;
+        String += '<tr>';
+        if PurchHeader."On Hold" = '' then
+            String += CaptureMgnt.Replace(LeftAlignedTd, Text003, Format(PurchHeader."Document Type") + ' ' + PurchHeader."No.", false)
+        else
+            String += CaptureMgnt.Replace(LeftAlignedTd, Text003, Format(PurchHeader."Document Type") + ' ' + PurchHeader."No." + ' ' + Text001, false);
+        String += CaptureMgnt.Replace(LeftAlignedTd, Text003, PurchHeader."Buy-from Vendor No." + ' - ' + PurchHeader."Buy-from Vendor Name", false);
+        String += CaptureMgnt.Replace(LeftAlignedTd, Text003, Format(PurchHeader."Document Date"), false);
+        String += CaptureMgnt.Replace(LeftAlignedTd, Text003, Format(PurchHeader."Due Date"), false);
+        String += CaptureMgnt.Replace(LeftAlignedTd, Text003, PurchHeader."Currency Code", false);
+        String += CaptureMgnt.Replace(RightAlignedTd, Text003,
+          Format(TotalAmountExclVAT, 0, StrSubstNo('<Precision,%1><Standard Format,0>', Currency."Amount Decimal Places")), false);
+        String += CaptureMgnt.Replace(RightAlignedTd, Text003,
+          Format(TotalAmountInclVAT, 0, StrSubstNo('<Precision,%1><Standard Format,0>', Currency."Amount Decimal Places")), false);
+
+        //OnCreateTableRowOnBeforeAppendRow2(PurchHeader, ApprEntry, String);
+        String += '</tr>';
     end;
 
     procedure GetAmountInclVAT(PurchHeader: Record "Purchase Header") Amount: Decimal

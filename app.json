@@ -1,8 +1,8 @@
 {
   "id": "cc0ce002-5e19-4749-ba6c-63095ae9e31a",
-  "name": "DO Continia Reminders",
+  "name": "Continia Reminders via Document Output",
   "publisher": "github.com/document-output",
-  "version": "1.0.0.3",
+  "version": "2.0.0.0",
   "brief": "",
   "description": "",
   "privacyStatement": "",
@@ -14,17 +14,24 @@
     "id": "6da8dd2f-e698-461f-9147-8e404244dd85",
     "name": "Continia Document Capture",
     "publisher": "Continia Software",
-    "version": "10.0.0.0"
+    "version": "27.0.0.0"
   },
   {
     "id": "f4b69b55-c90d-4937-8f53-2742898fa948",
     "name": "Continia Document Output",
     "publisher": "Continia Software",
-    "version": "7.0.0.0"
-  }],
+    "version": "27.0.0.0"
+  },
+  {
+      "id": "bbb72c8a-3abf-478f-9239-a34dbc252d07",
+      "name": "Continia Business Foundation",
+      "publisher": "Continia Software",
+      "version": "1.0.0.0"
+  }
+  ],
   "screenshots": [],
-  "platform": "1.0.0.0",
-  "application": "21.0.0.0",
+  "platform": "27.0.0.0",
+  "application": "27.0.0.0",
   "idRanges": [
     {
       "from": 61180,
@@ -36,7 +43,7 @@
     "allowDownloadingSource": true,
     "includeSourceInSymbolFile": true
   },
-  "runtime": "10.0",
+  "runtime": "16.0",
   "features": [
     "NoImplicitWith"
   ]
