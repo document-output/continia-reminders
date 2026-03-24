@@ -116,7 +116,7 @@ codeunit 61180 "DOADV DC Reminder Functions"
         HTML: Codeunit "CDC BigString Management";
         ApprovalEntries: Text;
     begin
-        RecRef.SetTable(ContiniaUserSetup);
+        /*RecRef.SetTable(ContiniaUserSetup);
         RecRef.SetTable(ContiniaUserSetup2);
         ApprEntry.SETRANGE("Approver ID", ContiniaUserSetup."Continia User ID");
         IF ApprEntry.FINDSET THEN BEGIN
@@ -168,6 +168,7 @@ codeunit 61180 "DOADV DC Reminder Functions"
             UNTIL ApprovalSharing.NEXT = 0;
         END;
         EXIT(DocumentHTML.Text());
+        */
     END;
 
     procedure CreateTableHeaderRow(var BigString: Codeunit "CDC BigString Management")
