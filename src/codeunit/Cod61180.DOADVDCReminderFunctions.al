@@ -1,3 +1,4 @@
+#pragma warning disable AL0432
 codeunit 61180 "DOADV DC Reminder Functions"
 {
     TableNo = 6175277;
@@ -21,6 +22,7 @@ codeunit 61180 "DOADV DC Reminder Functions"
     end;
 
     var
+        EventMgt: Codeunit "DOADV Reminder Event Mgt";
         Text001: Label '(On Hold)';
         Text002: Label '#DOCUMENTS#';
         Text003: Label '#VALUE#';
@@ -56,20 +58,173 @@ codeunit 61180 "DOADV DC Reminder Functions"
         InvalidEmails: Text;
         InvalidEmailMsg: Label 'The following users do not have a valid email:\\%1';
 
-
-    [EventSubscriber(ObjectType::Codeunit, Codeunit::"CDO Events", 'OnGetVariantRecord', '', true, true)]
-    procedure OnGetVariantRecord(TableNo: Integer; VAR VariantRecord: Variant; VAR IsHandled: Boolean)
+    internal procedure UpdateMailBodyWithApprovalEntries(var MailBody: Text; var FilterUserRecord: RecordRef): Boolean
     var
-        myInt: Integer;
-        ContiniaUserSetup: Record "CTS-CBF Continia User Setup";
 
+        ContiniaUserSetup: Record "CTS-CBF Continia User Setup";
+        CurrTableRow: text;
     begin
-        ContiniaUserSetup.FindSet();
-        VariantRecord := ContiniaUserSetup;
-        IsHandled := true;
+        FilterUserRecord.SetTable(ContiniaUserSetup);
+
+        //CurrTableRow := HtmlManipulator.GetTableRowById(MailBody, 'approvalentries', 'entries-line');
+        //CurrTableRow := CurrTableRow.Replace('%ENTRYNO', '12345');
+        //CurrTableRow := CurrTableRow.Replace('%DOCNO', ContiniaUserSetup."Continia User ID");
+        //CurrTableRow := CurrTableRow.Replace('%DOCDATE', '25.03.2026');
+        //exit(HtmlManipulator.ReplaceTableRowById(MailBody, 'approvalentries', 'entries-line', CurrTableRow));
+
+        exit(InsertUserApprovalEntriesToEmailBody(ContiniaUserSetup."Continia User ID", MailBody));
     end;
 
-    procedure GetApprovalURL(var RecRef: RecordRef): Text[1024]
+
+
+    internal procedure InsertUserApprovalEntriesToEmailBody(ContiniaUserId: Code[50]; var MailBody: Text): Boolean
+    var
+        DCSetup: Record "CDC Document Capture Setup";
+        DCAppMgt: Codeunit "CDC Approval Management";
+        ApprovalSharing: Record "CDC Approval Sharing";
+        //ContiniaUserSetup: Record "CTS-CBF Continia User Setup";
+        ApprEntry: Record "Approval Entry";
+        HtmlManipulator: Codeunit "DOADV HTML Manipulator";
+        TableRowTemplate: Text;
+        DocCount: Integer;
+    begin
+        TableRowTemplate := HtmlManipulator.GetTableRowById(MailBody, 'approvalentries', 'entries-line');
+        if TableRowTemplate = '' then
+            exit(false);
+
+        // Remove the placeholder table row from the mail body and add the new table row with real data as the last row of the approval entries table
+        HtmlManipulator.ReplaceTableRowById(MailBody, 'approvalentries', 'entries-line', '');
+
+        DCSetup.Get();
+
+        // If the user doesn't exist in Continia User Setup, we should not include any approval entries in the mail
+        // Pre-filter approval entries
+        ApprEntry.SetCurrentKey("Approver ID", Status);
+        ApprEntry.SetRange("Table ID", Database::"Purchase Header");
+        ApprEntry.SetRange(Status, ApprEntry.Status::Open);
+
+        DCAppMgt.FilterApprovalSharingFromUser(ApprovalSharing, ContiniaUserId);
+        ApprovalSharing.SetFilter("Send E-mail To", '<>%1', ApprovalSharing."Send E-mail To"::"Only Original Approver");
+        if ApprovalSharing.IsEmpty then begin
+            ApprEntry.SetRange("Approver ID", ContiniaUserId);
+            if ApprEntry.FindSet() then
+                repeat
+                    if IncludeApprovalEntry(DCSetup, ApprEntry) then begin
+                        AddApprovalEntryDataToMailBodyTable(MailBody, ApprEntry, TableRowTemplate);
+                        DocCount += 1;
+                    end;
+                until (ApprEntry.Next() = 0);
+
+        end else begin
+            DCAppMgt.FilterApprovalSharingToUser(ApprovalSharing, ContiniaUserId);
+            ApprovalSharing.SetFilter("Send E-mail To", '<>%1', ApprovalSharing."Send E-mail To"::"Only Original Approver");
+            if ApprovalSharing.FindSet() then
+                repeat
+                    ApprEntry.SetRange("Approver ID", ApprovalSharing."Owner User ID");
+                    if ApprEntry.FindSet() then begin
+                        //ContiniaUserSetup2.Get(ApprEntry."Approver ID");
+                        repeat
+                            if IncludeApprovalEntry(DCSetup, ApprEntry) then begin
+                                AddApprovalEntryDataToMailBodyTable(MailBody, ApprEntry, TableRowTemplate);
+                                DocCount += 1;
+                            end;
+                        until ApprEntry.Next() = 0;
+                    end;
+                until (ApprovalSharing.Next() = 0);
+        end;
+        MailBody := MailBody.Replace('#DOCCOUNT', Format(DocCount));
+    end;
+
+    local procedure AddApprovalEntryDataToMailBodyTable(var MailBody: Text; ApprovalEntry: Record "Approval Entry"; TableRowTemplate: Text): Boolean
+    var
+        PurchaseHeader: Record "Purchase Header";
+        HtmlManipulator: Codeunit "DOADV HTML Manipulator";
+        Handled: Boolean;
+        Success: Boolean;
+    begin
+        if not PurchaseHeader.Get(ApprovalEntry."Document Type", ApprovalEntry."Document No.") then
+            exit;
+
+        // Try to replace the pre-defined placeholders in the table row template with real data from the approval entry and related purchase header
+        TableRowTemplate := TableRowTemplate.Replace('%ENTRYNO', Format(ApprovalEntry."Entry No."));
+        TableRowTemplate := TableRowTemplate.Replace('%DOCTYPE', Format(ApprovalEntry."Document Type"));
+        TableRowTemplate := TableRowTemplate.Replace('%DOCNO', StrSubstNo('%1 %2', PurchaseHeader."Document Type", PurchaseHeader."No."));
+        TableRowTemplate := TableRowTemplate.Replace('%VENDOR', StrSubstNo('%1 %2', PurchaseHeader."Buy-from Vendor No.", PurchaseHeader."Buy-from Vendor Name"));
+        TableRowTemplate := TableRowTemplate.Replace('%DOCDATE', Format(PurchaseHeader."Document Date"));
+        TableRowTemplate := TableRowTemplate.Replace('%DUEDATE', Format(PurchaseHeader."Due Date"));
+        TableRowTemplate := TableRowTemplate.Replace('%CURRENCY', Format(PurchaseHeader."Currency Code"));
+        TableRowTemplate := TableRowTemplate.Replace('%AMTEXCLVAT', Format(PurchaseHeader."Amount Including VAT"));
+        TableRowTemplate := TableRowTemplate.Replace('%AMTINCLVAT', Format(PurchaseHeader.Amount));
+
+        // Raise an event to give the possibility to adjust the generated table row before it is inserted into the mail body
+        EventMgt.OnBeforeAddApprovalEntryRowToMailBody(ApprovalEntry, TableRowTemplate, PurchaseHeader, Handled, Success);
+        if Handled then
+            exit(Success);
+
+        exit(HtmlManipulator.AddTableRowLast(MailBody, 'approvalentries', TableRowTemplate));
+    end;
+
+
+    /// <summary>
+    /// Procedure to identify if the given user needs to be informed by mail about open approval entries
+    /// </summary>
+    /// <param name="DCSetup">Document Capture Setup record</param>
+    /// <param name="ContiniaUserId">User ID from Continia User Setup</param>
+    /// <returns></returns>
+    internal procedure SendApprovalEmailtoUser(DCSetup: Record "CDC Document Capture Setup"; ContiniaUserId: Code[50]) SendMail: Boolean
+    var
+        DCAppMgt: Codeunit "CDC Approval Management";
+        ApprovalSharing: Record "CDC Approval Sharing";
+        //ContiniaUserSetup: Record "CTS-CBF Continia User Setup";
+        ApprEntry: Record "Approval Entry";
+    begin
+        // Pre-filter approval entries
+        ApprEntry.SetCurrentKey("Approver ID", Status);
+        ApprEntry.SetRange("Table ID", Database::"Purchase Header");
+        ApprEntry.SetRange(Status, ApprEntry.Status::Open);
+
+        DCAppMgt.FilterApprovalSharingFromUser(ApprovalSharing, ContiniaUserId);
+        ApprovalSharing.SetFilter("Send E-mail To", '<>%1', ApprovalSharing."Send E-mail To"::"Only Original Approver");
+        if ApprovalSharing.IsEmpty then begin
+            ApprEntry.SetRange("Approver ID", ContiniaUserId);
+            if ApprEntry.FindSet() then
+                repeat
+                    if IncludeApprovalEntry(DCSetup, ApprEntry) then
+                        SendMail := true;
+                until (ApprEntry.Next() = 0) or SendMail;
+
+        end else begin
+            DCAppMgt.FilterApprovalSharingToUser(ApprovalSharing, ContiniaUserId);
+            ApprovalSharing.SetFilter("Send E-mail To", '<>%1', ApprovalSharing."Send E-mail To"::"Only Original Approver");
+            if ApprovalSharing.FindSet() then
+                repeat
+                    ApprEntry.SetRange("Approver ID", ApprovalSharing."Owner User ID");
+                    if ApprEntry.FindSet() then begin
+                        //ContiniaUserSetup2.Get(ApprEntry."Approver ID");
+                        repeat
+                            if IncludeApprovalEntry(DCSetup, ApprEntry) then
+                                SendMail := true;
+                        until ApprEntry.Next() = 0;
+                    end;
+                until (ApprovalSharing.Next() = 0) or SendMail;
+        end;
+    end;
+
+    local procedure IncludeApprovalEntry(DCSetup: Record "CDC Document Capture Setup"; ApprovalEntry: Record "Approval Entry"): Boolean
+    var
+        PurchHeader: Record "Purchase Header";
+    begin
+        if DCSetup."Include Appr. Entries On Hold" then
+            exit(true);
+
+        if PurchHeader.Get(ApprovalEntry."Document Type", ApprovalEntry."Document No.") and (PurchHeader."On Hold" <> '') then
+            exit(false);
+
+        exit(true);
+    end;
+
+
+    local procedure GetApprovalURL(var RecRef: RecordRef): Text[1024]
     var
         ContiniaUserSetup: Record "CTS-CBF Continia User Setup";
         CDCApprovalManagement: Codeunit 6085722;
@@ -78,26 +233,6 @@ codeunit 61180 "DOADV DC Reminder Functions"
         RecRef.SetTable(ContiniaUserSetup);
         EXIT(DCAppMgt.GetApprovalHyperlink(ContiniaUserSetup."Continia User ID"));
     end;
-
-    [EventSubscriber(ObjectType::Codeunit, Codeunit::"CDO Events", 'OnPrepareMail', '', true, true)]
-    local procedure OnPrepareMail(var EMailTemplateLine: Record 6175284; VAR DOFile: Record 6175301; VAR FilterRecord: RecordRef; Recipients: Text; Cc: Text; Bcc: Text; VAR Subject: Text; VAR MailBody: Text)
-    begin
-        MailBody := CopyOfCDO_InsertMergeField(MailBody, '%ApprovalEntries', GetApprovalEntries(FilterRecord));
-    end;
-
-    procedure CopyOfCDO_InsertMergeField(OldString: Text; Id: Text; SubString: Text): Text;
-    var
-        Pos: Integer;
-    begin
-        Pos := STRPOS(OldString, Id);
-        WHILE Pos > 0 DO BEGIN
-            OldString := DELSTR(OldString, Pos, STRLEN(Id));
-            OldString := INSSTR(OldString, SubString, Pos);
-            Pos := STRPOS(OldString, Id);
-        end;
-        EXIT(OldString);
-    end;
-
 
     procedure GetApprovalEntries(var RecRef: RecordRef): Text
     var
@@ -265,3 +400,4 @@ codeunit 61180 "DOADV DC Reminder Functions"
     end;
 
 }
+#pragma warning restore AL0432

@@ -2,7 +2,7 @@
   "id": "cc0ce002-5e19-4749-ba6c-63095ae9e31a",
   "name": "Continia Reminders via Document Output",
   "publisher": "github.com/document-output",
-  "version": "2.0.0.0",
+  "version": "27.0.2.0",
   "brief": "",
   "description": "",
   "privacyStatement": "",
@@ -10,24 +10,31 @@
   "help": "",
   "url": "https://github.com/document-output",
   "logo": "",
-  "dependencies": [{
-    "id": "6da8dd2f-e698-461f-9147-8e404244dd85",
-    "name": "Continia Document Capture",
-    "publisher": "Continia Software",
-    "version": "27.0.0.0"
-  },
-  {
-    "id": "f4b69b55-c90d-4937-8f53-2742898fa948",
-    "name": "Continia Document Output",
-    "publisher": "Continia Software",
-    "version": "27.0.0.0"
-  },
-  {
+  "dependencies": [
+    {
+      "id": "6da8dd2f-e698-461f-9147-8e404244dd85",
+      "name": "Continia Document Capture",
+      "publisher": "Continia Software",
+      "version": "27.0.0.0"
+    },
+    {
+      "id": "f4b69b55-c90d-4937-8f53-2742898fa948",
+      "name": "Continia Document Output",
+      "publisher": "Continia Software",
+      "version": "27.0.0.0"
+    },
+    {
       "id": "bbb72c8a-3abf-478f-9239-a34dbc252d07",
       "name": "Continia Business Foundation",
       "publisher": "Continia Software",
       "version": "1.0.0.0"
-  }
+    },
+    {
+      "id": "4ec0dd0d-89ca-4266-bdec-c0bdacf923e3",
+      "name": "Continia Approvals",
+      "publisher": "Continia Software",
+      "version": "1.0.0.0"
+    }
   ],
   "screenshots": [],
   "platform": "27.0.0.0",

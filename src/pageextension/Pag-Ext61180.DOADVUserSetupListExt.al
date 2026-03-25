@@ -10,6 +10,12 @@ pageextension 61180 "DOADV User Setup List Ext" extends "CTS-CBF User Setup List
                 ApplicationArea = All;
                 Enabled = true;
             }
+            field("Salesperson Code"; rec."Salesperson Code")
+            {
+                ToolTip = 'Specifies the salesperson code of the user. This can be used for filtering in the document output queues.';
+                ApplicationArea = All;
+                Enabled = true;
+            }
         }
     }
     actions
