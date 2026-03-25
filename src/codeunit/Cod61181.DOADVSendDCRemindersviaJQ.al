@@ -17,7 +17,7 @@ codeunit 61181 "DOADV Send DC Reminders via JQ"
 
     internal procedure SendApprovalEmails()
     var
-        ApprovalFunctions: Codeunit "DOADV DC Reminder Functions";
+        ApprovalFunctions: Codeunit "DOADV DC Approval Notif. Mgt.";
         DCSetup: Record "CDC Document Capture Setup";
         ContiniaUserSetup: Record "CTS-CBF Continia User Setup";
         Window: Dialog;
@@ -75,9 +75,6 @@ codeunit 61181 "DOADV Send DC Reminders via JQ"
         if EventEntry.FindLast() then
             exit(EventEntry."Entry No.");
     end;
-
-
-
 
     local procedure QueueMailToContiniaUser(UserSetup: record "CTS-CBF Continia User Setup"; TemplateCode: Code[20])
     var

@@ -1,5 +1,5 @@
 #pragma warning disable AL0432
-codeunit 61180 "DOADV DC Reminder Functions"
+codeunit 61180 "DOADV DC Approval Notif. Mgt."
 {
     TableNo = 6175277;
     trigger OnRun()
@@ -13,6 +13,7 @@ codeunit 61180 "DOADV DC Reminder Functions"
         If NOT RecRef.Find() then
             EXIT;
 
+        // Example of how to handle merge fields
         CASE Rec.Parameter OF
             'GetApprovalURL':
                 Rec.ReturnValue := GetApprovalURL(RecRef);
@@ -102,6 +103,10 @@ codeunit 61180 "DOADV DC Reminder Functions"
         else
             Currency.Get(PurchaseHeader."Currency Code");
 
+        // Raise an event to give the possibility to skip or extend the processing of current approval entry before doing the placeholder replacement and adding the table row to the mail body
+        EventMgt.OnBeforeProcessApprovalEntryRow(ApprovalEntry, TableRowTemplate, PurchaseHeader, Handled, Success);
+        if Handled then
+            exit(Success);
 
         // Try to replace the pre-defined placeholders in the table row template with real data from the approval entry and related purchase header
         TableRowTemplate := TableRowTemplate.Replace('%ENTRYNO', Format(ApprovalEntry."Entry No."));
