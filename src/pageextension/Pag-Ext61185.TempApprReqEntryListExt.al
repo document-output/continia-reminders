@@ -14,7 +14,7 @@ pageextension 61185 "Temp Appr Req Entry List Ext" extends "Approval Request Ent
                 PromotedCategory = Process;
                 PromotedIsBig = true;
             }
-            action(ActionName)
+            action(SendNotifications)
             {
                 ApplicationArea = All;
                 Caption = 'Send Notifications with Document Output';
@@ -23,6 +23,23 @@ pageextension 61185 "Temp Appr Req Entry List Ext" extends "Approval Request Ent
                 Promoted = true;
                 PromotedCategory = Process;
                 PromotedIsBig = true;
+            }
+            action(StartDispatcher)
+            {
+                ApplicationArea = All;
+                Caption = 'Start Dispatcher';
+                Image = "Start";
+                Promoted = true;
+                PromotedCategory = Process;
+                PromotedIsBig = true;
+                ToolTip = 'Starts running the queue entries.';
+                trigger OnAction()
+                var
+                    DocOutputQueueMgt: Codeunit "CDO Queue Management";
+                begin
+                    DocOutputQueueMgt.SendQueue(-1);
+                end;
+
             }
         }
     }
