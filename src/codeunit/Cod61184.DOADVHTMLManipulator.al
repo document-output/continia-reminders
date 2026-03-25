@@ -8,10 +8,11 @@ codeunit 61184 "DOADV HTML Manipulator"
     // ===========================================================================
 
     /// Returns the first <tr>...</tr> block (including tags) within the table
-    /// that matches TableIdentifier (id or class attribute value), where the
-    /// opening tr tag carries the CSS class RowClass.
+    /// that matches TableIdentifier (searched as id or class on the <table> tag),
+    /// where the opening <tr> tag has Attribute="AttributeValue".
     /// Returns '' when not found.
-    procedure GetTableRowById(HtmlContent: Text; TableIdentifier: Text; RowId: Text): Text
+    /// Example: GetTableRowByAttribute(Html, 'my-table', 'class', 'approval-entries')
+    procedure GetTableRowByAttribute(HtmlContent: Text; TableIdentifier: Text; Attribute: Text; AttributeValue: Text): Text
     var
         TableStart: Integer;
         TableEnd: Integer;
@@ -20,32 +21,14 @@ codeunit 61184 "DOADV HTML Manipulator"
     begin
         if not FindTableRange(HtmlContent, TableIdentifier, TableStart, TableEnd) then
             exit('');
-        if not FindTrRangeById(HtmlContent, TableStart, TableEnd, RowId, TrStart, TrEnd) then
+        if not FindTrRangeByAttribute(HtmlContent, TableStart, TableEnd, Attribute, AttributeValue, TrStart, TrEnd) then
             exit('');
         exit(CopyStr(HtmlContent, TrStart, TrEnd - TrStart + 1));
     end;
 
-    /// Returns the first <tr>...</tr> block (including tags) within the table
-    /// that matches TableIdentifier (id or class attribute value), where the
-    /// opening tr tag carries the CSS class RowClass.
-    /// Returns '' when not found.
-    procedure GetTableRowByClass(HtmlContent: Text; TableIdentifier: Text; RowClass: Text): Text
-    var
-        TableStart: Integer;
-        TableEnd: Integer;
-        TrStart: Integer;
-        TrEnd: Integer;
-    begin
-        if not FindTableRange(HtmlContent, TableIdentifier, TableStart, TableEnd) then
-            exit('');
-        if not FindTrRangeByClass(HtmlContent, TableStart, TableEnd, RowClass, TrStart, TrEnd) then
-            exit('');
-        exit(CopyStr(HtmlContent, TrStart, TrEnd - TrStart + 1));
-    end;
-
-    /// Replaces the first <tr> carrying RowClass inside the matching table
-    /// with NewRowContent. Returns true when a replacement was made.
-    procedure ReplaceTableRowById(var HtmlContent: Text; TableIdentifier: Text; RowId: Text; NewRowContent: Text): Boolean
+    /// Replaces the first <tr> where Attribute="AttributeValue" inside the matching
+    /// table with NewRowContent. Returns true when a replacement was made.
+    procedure ReplaceTableRowByAttribute(var HtmlContent: Text; TableIdentifier: Text; Attribute: Text; AttributeValue: Text; NewRowContent: Text): Boolean
     var
         TableStart: Integer;
         TableEnd: Integer;
@@ -54,28 +37,7 @@ codeunit 61184 "DOADV HTML Manipulator"
     begin
         if not FindTableRange(HtmlContent, TableIdentifier, TableStart, TableEnd) then
             exit(false);
-        if not FindTrRangeById(HtmlContent, TableStart, TableEnd, RowId, TrStart, TrEnd) then
-            exit(false);
-
-        HtmlContent :=
-            CopyStr(HtmlContent, 1, TrStart - 1) +
-            NewRowContent +
-            CopyStr(HtmlContent, TrEnd + 1);
-        exit(true);
-    end;
-
-    /// Replaces the first <tr> carrying RowClass inside the matching table
-    /// with NewRowContent. Returns true when a replacement was made.
-    procedure ReplaceTableRowByClass(var HtmlContent: Text; TableIdentifier: Text; RowClass: Text; NewRowContent: Text): Boolean
-    var
-        TableStart: Integer;
-        TableEnd: Integer;
-        TrStart: Integer;
-        TrEnd: Integer;
-    begin
-        if not FindTableRange(HtmlContent, TableIdentifier, TableStart, TableEnd) then
-            exit(false);
-        if not FindTrRangeByClass(HtmlContent, TableStart, TableEnd, RowClass, TrStart, TrEnd) then
+        if not FindTrRangeByAttribute(HtmlContent, TableStart, TableEnd, Attribute, AttributeValue, TrStart, TrEnd) then
             exit(false);
 
         HtmlContent :=
@@ -123,8 +85,8 @@ codeunit 61184 "DOADV HTML Manipulator"
         exit(true);
     end;
 
-    /// Inserts NewRowContent immediately AFTER the first <tr> with RefRowClass.
-    procedure AddTableRowAfterClass(var HtmlContent: Text; TableIdentifier: Text; RefRowClass: Text; NewRowContent: Text): Boolean
+    /// Inserts NewRowContent immediately AFTER the first <tr> where Attribute="AttributeValue".
+    procedure AddTableRowAfter(var HtmlContent: Text; TableIdentifier: Text; Attribute: Text; AttributeValue: Text; NewRowContent: Text): Boolean
     var
         TableStart: Integer;
         TableEnd: Integer;
@@ -133,7 +95,7 @@ codeunit 61184 "DOADV HTML Manipulator"
     begin
         if not FindTableRange(HtmlContent, TableIdentifier, TableStart, TableEnd) then
             exit(false);
-        if not FindTrRangeByClass(HtmlContent, TableStart, TableEnd, RefRowClass, TrStart, TrEnd) then
+        if not FindTrRangeByAttribute(HtmlContent, TableStart, TableEnd, Attribute, AttributeValue, TrStart, TrEnd) then
             exit(false);
 
         HtmlContent :=
@@ -143,8 +105,8 @@ codeunit 61184 "DOADV HTML Manipulator"
         exit(true);
     end;
 
-    /// Inserts NewRowContent immediately BEFORE the first <tr> with RefRowClass.
-    procedure AddTableRowBeforeClass(var HtmlContent: Text; TableIdentifier: Text; RefRowClass: Text; NewRowContent: Text): Boolean
+    /// Inserts NewRowContent immediately BEFORE the first <tr> where Attribute="AttributeValue".
+    procedure AddTableRowBefore(var HtmlContent: Text; TableIdentifier: Text; Attribute: Text; AttributeValue: Text; NewRowContent: Text): Boolean
     var
         TableStart: Integer;
         TableEnd: Integer;
@@ -153,7 +115,7 @@ codeunit 61184 "DOADV HTML Manipulator"
     begin
         if not FindTableRange(HtmlContent, TableIdentifier, TableStart, TableEnd) then
             exit(false);
-        if not FindTrRangeByClass(HtmlContent, TableStart, TableEnd, RefRowClass, TrStart, TrEnd) then
+        if not FindTrRangeByAttribute(HtmlContent, TableStart, TableEnd, Attribute, AttributeValue, TrStart, TrEnd) then
             exit(false);
 
         HtmlContent :=
@@ -169,7 +131,7 @@ codeunit 61184 "DOADV HTML Manipulator"
 
     /// Finds the character range [TableStart..TableEnd] of the <table> element
     /// whose id or class attribute matches TableIdentifier (case-insensitive).
-    ///   TableStart = position of '<' in the opening <table tag
+    ///   TableStart = position of '<' in the opening <table> tag
     ///   TableEnd   = position of '>' in the closing </table> tag
     local procedure FindTableRange(HtmlContent: Text; TableIdentifier: Text; var TableStart: Integer; var TableEnd: Integer): Boolean
     var
@@ -192,7 +154,7 @@ codeunit 61184 "DOADV HTML Manipulator"
             // Confirm '<table' is not a prefix of another tag (e.g. <tablefoo>)
             if IsRealTag(LowerHtml, TableStart, 'table') then begin
                 OpenTag := CopyStr(LowerHtml, TableStart, TagOpenEnd - TableStart + 1);
-                if HasAttributeValue(OpenTag, 'id', LowerId) or HasClassValue(OpenTag, LowerId) then begin
+                if HasAttributeToken(OpenTag, 'id', LowerId) or HasAttributeToken(OpenTag, 'class', LowerId) then begin
                     TableEnd := FindMatchingTableClose(LowerHtml, TagOpenEnd + 1);
                     exit(TableEnd > 0);
                 end;
@@ -248,9 +210,9 @@ codeunit 61184 "DOADV HTML Manipulator"
     // ===========================================================================
 
     /// Within [SearchFrom..SearchTo], finds the first <tr> whose opening tag
-    /// contains RowId. Sets TrStart (position of '<') and TrEnd (position
-    /// of '>' in </tr>). Returns false when not found.
-    local procedure FindTrRangeById(HtmlContent: Text; SearchFrom: Integer; SearchTo: Integer; RowId: Text; var TrStart: Integer; var TrEnd: Integer): Boolean
+    /// has Attribute="AttributeValue". Sets TrStart (position of '<') and TrEnd
+    /// (position of '>' in </tr>). Returns false when not found.
+    local procedure FindTrRangeByAttribute(HtmlContent: Text; SearchFrom: Integer; SearchTo: Integer; Attribute: Text; AttributeValue: Text; var TrStart: Integer; var TrEnd: Integer): Boolean
     var
         LowerHtml: Text;
         SearchPos: Integer;
@@ -258,7 +220,8 @@ codeunit 61184 "DOADV HTML Manipulator"
         OpenTag: Text;
     begin
         LowerHtml := LowerCase(HtmlContent);
-        RowId := LowerCase(RowId);
+        Attribute := LowerCase(Attribute);
+        AttributeValue := LowerCase(AttributeValue);
         SearchPos := SearchFrom;
 
         TrStart := PosFrom(LowerHtml, '<tr', SearchPos);
@@ -269,42 +232,7 @@ codeunit 61184 "DOADV HTML Manipulator"
 
             if IsRealTag(LowerHtml, TrStart, 'tr') then begin
                 OpenTag := CopyStr(LowerHtml, TrStart, TagOpenEnd - TrStart + 1);
-                if HasIdValue(OpenTag, RowId) then begin
-                    TrEnd := FindTrClose(LowerHtml, TagOpenEnd + 1, SearchTo);
-                    exit(TrEnd > 0);
-                end;
-            end;
-
-            SearchPos := TagOpenEnd + 1;
-            TrStart := PosFrom(LowerHtml, '<tr', SearchPos);
-        end;
-
-        exit(false);
-    end;
-
-    /// Within [SearchFrom..SearchTo], finds the first <tr> whose opening tag
-    /// contains RowClass. Sets TrStart (position of '<') and TrEnd (position
-    /// of '>' in </tr>). Returns false when not found.
-    local procedure FindTrRangeByClass(HtmlContent: Text; SearchFrom: Integer; SearchTo: Integer; RowClass: Text; var TrStart: Integer; var TrEnd: Integer): Boolean
-    var
-        LowerHtml: Text;
-        SearchPos: Integer;
-        TagOpenEnd: Integer;
-        OpenTag: Text;
-    begin
-        LowerHtml := LowerCase(HtmlContent);
-        RowClass := LowerCase(RowClass);
-        SearchPos := SearchFrom;
-
-        TrStart := PosFrom(LowerHtml, '<tr', SearchPos);
-        while (TrStart > 0) and (TrStart <= SearchTo) do begin
-            TagOpenEnd := PosFrom(LowerHtml, '>', TrStart);
-            if (TagOpenEnd = 0) or (TagOpenEnd > SearchTo) then
-                exit(false);
-
-            if IsRealTag(LowerHtml, TrStart, 'tr') then begin
-                OpenTag := CopyStr(LowerHtml, TrStart, TagOpenEnd - TrStart + 1);
-                if HasClassValue(OpenTag, RowClass) then begin
+                if HasAttributeToken(OpenTag, Attribute, AttributeValue) then begin
                     TrEnd := FindTrClose(LowerHtml, TagOpenEnd + 1, SearchTo);
                     exit(TrEnd > 0);
                 end;
@@ -426,82 +354,36 @@ codeunit 61184 "DOADV HTML Manipulator"
     // PRIVATE – ATTRIBUTE HELPERS
     // ===========================================================================
 
-    /// Returns true when LowerTag (already lowercased) contains AttrName="AttrValue"
-    /// or AttrName='AttrValue' (exact value match, case-insensitive via pre-lowercasing).
-    local procedure HasAttributeValue(LowerTag: Text; AttrName: Text; AttrValue: Text): Boolean
-    begin
-        exit(
-            (StrPos(LowerTag, AttrName + '="' + AttrValue + '"') > 0) or
-            (StrPos(LowerTag, AttrName + '=''' + AttrValue + '''') > 0)
-        );
-    end;
-
-    /// Returns true when the class attribute in LowerTag contains ClassName as
-    /// one of its space-separated tokens (supports multiple classes).
-    /// #todo create HasHtmlPropertyValue to cover both this and HasAttributeValue, since class handling is a common special case but there are other attributes where we also want to check for space-separated tokens (e.g. aria-describedby="id1 id2 id3")
-    local procedure HasIdValue(LowerTag: Text; IdName: Text): Boolean
+    /// Returns true when AttrName in LowerTag (already lowercased) contains TokenValue
+    /// as one of its space-separated tokens. Works for single-value attributes (id, href)
+    /// and multi-token attributes (class, aria-describedby, etc.).
+    local procedure HasAttributeToken(LowerTag: Text; AttrName: Text; TokenValue: Text): Boolean
     var
-        ClassPos: Integer;
+        AttrPos: Integer;
         ValueStart: Integer;
         ValueEnd: Integer;
-        ClassValue: Text;
+        AttrValue: Text;
     begin
-        // Double-quoted class attribute
-        ClassPos := StrPos(LowerTag, 'id="');
-        if ClassPos > 0 then begin
-            ValueStart := ClassPos + StrLen('id="');
+        // Double-quoted attribute: attrname="..."
+        AttrPos := StrPos(LowerTag, AttrName + '="');
+        if AttrPos > 0 then begin
+            ValueStart := AttrPos + StrLen(AttrName + '="');
             ValueEnd := PosFrom(LowerTag, '"', ValueStart);
             if ValueEnd > 0 then begin
-                ClassValue := CopyStr(LowerTag, ValueStart, ValueEnd - ValueStart);
-                if ContainsWord(ClassValue, IdName) then
+                AttrValue := CopyStr(LowerTag, ValueStart, ValueEnd - ValueStart);
+                if ContainsWord(AttrValue, TokenValue) then
                     exit(true);
             end;
         end;
 
-        // Single-quoted class attribute
-        ClassPos := StrPos(LowerTag, 'id=''');
-        if ClassPos > 0 then begin
-            ValueStart := ClassPos + StrLen('id=''');
+        // Single-quoted attribute: attrname='...'
+        AttrPos := StrPos(LowerTag, AttrName + '=''');
+        if AttrPos > 0 then begin
+            ValueStart := AttrPos + StrLen(AttrName + '=''');
             ValueEnd := PosFrom(LowerTag, '''', ValueStart);
             if ValueEnd > 0 then begin
-                ClassValue := CopyStr(LowerTag, ValueStart, ValueEnd - ValueStart);
-                if ContainsWord(ClassValue, IdName) then
-                    exit(true);
-            end;
-        end;
-
-        exit(false);
-    end;
-
-    /// Returns true when the class attribute in LowerTag contains ClassName as
-    /// one of its space-separated tokens (supports multiple classes).
-    local procedure HasClassValue(LowerTag: Text; ClassName: Text): Boolean
-    var
-        ClassPos: Integer;
-        ValueStart: Integer;
-        ValueEnd: Integer;
-        ClassValue: Text;
-    begin
-        // Double-quoted class attribute
-        ClassPos := StrPos(LowerTag, 'class="');
-        if ClassPos > 0 then begin
-            ValueStart := ClassPos + StrLen('class="');
-            ValueEnd := PosFrom(LowerTag, '"', ValueStart);
-            if ValueEnd > 0 then begin
-                ClassValue := CopyStr(LowerTag, ValueStart, ValueEnd - ValueStart);
-                if ContainsWord(ClassValue, ClassName) then
-                    exit(true);
-            end;
-        end;
-
-        // Single-quoted class attribute
-        ClassPos := StrPos(LowerTag, 'class=''');
-        if ClassPos > 0 then begin
-            ValueStart := ClassPos + StrLen('class=''');
-            ValueEnd := PosFrom(LowerTag, '''', ValueStart);
-            if ValueEnd > 0 then begin
-                ClassValue := CopyStr(LowerTag, ValueStart, ValueEnd - ValueStart);
-                if ContainsWord(ClassValue, ClassName) then
+                AttrValue := CopyStr(LowerTag, ValueStart, ValueEnd - ValueStart);
+                if ContainsWord(AttrValue, TokenValue) then
                     exit(true);
             end;
         end;

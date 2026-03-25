@@ -35,12 +35,12 @@ codeunit 61180 "DOADV DC Reminder Functions"
     begin
         FilterUserRecord.SetTable(ContiniaUserSetup);
 
-        TableRowTemplate := HtmlManipulator.GetTableRowById(MailBody, 'approvalentries', 'entries-line');
+        TableRowTemplate := HtmlManipulator.GetTableRowByAttribute(MailBody, 'approvalentries', 'id', 'entries-line');
         if TableRowTemplate = '' then
             exit(false);
 
         // Remove the placeholder table row from the mail body and add the new table row with real data as the last row of the approval entries table
-        HtmlManipulator.ReplaceTableRowById(MailBody, 'approvalentries', 'entries-line', '');
+        HtmlManipulator.ReplaceTableRowByAttribute(MailBody, 'approvalentries', 'id', 'entries-line', '');
 
         DCSetup.Get();
 
