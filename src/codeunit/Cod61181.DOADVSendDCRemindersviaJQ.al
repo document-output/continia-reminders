@@ -1,4 +1,7 @@
 #pragma warning disable AL0432
+/// <summary>
+/// This codeunit is intended to be executed as Business Central Job Queue entry
+/// </summary>
 codeunit 61181 "DOADV Send DC Reminders via JQ"
 {
     Permissions = tabledata "Approval Entry" = rm,
@@ -9,12 +12,15 @@ codeunit 61181 "DOADV Send DC Reminders via JQ"
     trigger OnRun()
     begin
         SendApprovalEmails();
-        //SendReminderEmails();
+        // #TODO SendReminderEmails();
     end;
 
     var
         InvalidEmails: Text;
 
+    /// <summary>
+    /// This procedures is identifying users that needs to be informed about their open approval entries
+    /// </summary>
     internal procedure SendApprovalEmails()
     var
         ApprovalFunctions: Codeunit "DOADV DC Approval Notif. Mgt.";
@@ -22,9 +28,6 @@ codeunit 61181 "DOADV Send DC Reminders via JQ"
         ContiniaUserSetup: Record "CTS-CBF Continia User Setup";
         Window: Dialog;
         QueuedMailsCounter: Integer;
-
-        //FromEventEntryNo: Integer;
-        //ToEventEntryNo: Integer;
         RecCount: Integer;
         i: Integer;
         SendMail: Boolean;
@@ -48,7 +51,9 @@ codeunit 61181 "DOADV Send DC Reminders via JQ"
                     Window.Update(1, CalcProgress(RecCount, i));
                 end;
 
+                // Find out if user has open approval entries that requires email notification
                 if ApprovalFunctions.SendApprovalEmailtoUser(DCSetup, ContiniaUserSetup."Continia User ID") then begin
+                    // Queue email for current user
                     QueueMailToContiniaUser(ContiniaUserSetup, 'DC-APPROVAL-MAIL');
                     QueuedMailsCounter += 1;
                 end;
@@ -76,6 +81,11 @@ codeunit 61181 "DOADV Send DC Reminders via JQ"
             exit(EventEntry."Entry No.");
     end;
 
+    /// <summary>
+    /// Creates a Document Output queue record for the passed Continia User Setup user
+    /// </summary>
+    /// <param name="UserSetup">Continia User Setup record</param>
+    /// <param name="TemplateCode">Document Ouput Template Code</param>
     local procedure QueueMailToContiniaUser(UserSetup: record "CTS-CBF Continia User Setup"; TemplateCode: Code[20])
     var
         EMailTemplateHeader: Record "CDO E-Mail Template Header";

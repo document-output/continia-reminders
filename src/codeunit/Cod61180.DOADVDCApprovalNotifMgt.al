@@ -23,6 +23,12 @@ codeunit 61180 "DOADV DC Approval Notif. Mgt."
     var
         EventMgt: Codeunit "DOADV Reminder Event Mgt";
 
+    /// <summary>
+    /// This procedures tries to add the open approval entry details of the passed user record to the mail body
+    /// </summary>
+    /// <param name="FilterUserRecord">Continia User Setup record</param>
+    /// <param name="MailBody">Html body text</param>
+    /// <returns>True if approval entries were added to the email body, false otherwise</returns>
     internal procedure InsertUserApprovalEntriesToEmailBody(var FilterUserRecord: RecordRef; var MailBody: Text): Boolean
     var
         DCSetup: Record "CDC Document Capture Setup";
@@ -84,6 +90,13 @@ codeunit 61180 "DOADV DC Approval Notif. Mgt."
         MailBody := MailBody.Replace('%DOCCOUNT', Format(DocCount));
     end;
 
+    /// <summary>
+    /// This procedures will try to replace the row template with information from the current approval entry and add it to the main table in mail body
+    /// </summary>
+    /// <param name="MailBody">Mail body text</param>
+    /// <param name="ApprovalEntry">Approval Entry record</param>
+    /// <param name="TableRowTemplate">Table row template</param>
+    /// <returns>True if the approval entry data was added to the mail body, false otherwise</returns>
     local procedure AddApprovalEntryDataToMailBodyTable(var MailBody: Text; ApprovalEntry: Record "Approval Entry"; TableRowTemplate: Text): Boolean
     var
         PurchaseHeader: Record "Purchase Header";
@@ -178,6 +191,12 @@ codeunit 61180 "DOADV DC Approval Notif. Mgt."
         end;
     end;
 
+    /// <summary>
+    /// Procedure that identifies if the current approval entry should be added to the mail or skipped
+    /// </summary>
+    /// <param name="DCSetup">Document Capture Setup record</param>
+    /// <param name="ApprovalEntry">Approval Entry record</param>
+    /// <returns>True if the approval entry should be included, false otherwise</returns>
     local procedure IncludeApprovalEntry(DCSetup: Record "CDC Document Capture Setup"; ApprovalEntry: Record "Approval Entry"): Boolean
     var
         PurchHeader: Record "Purchase Header";
@@ -191,6 +210,11 @@ codeunit 61180 "DOADV DC Approval Notif. Mgt."
         exit(true);
     end;
 
+    /// <summary>
+    /// Gets the URL for the approval hyperlink
+    /// </summary>
+    /// <param name="RecRef">Record reference</param>
+    /// <returns>Approval URL</returns>
     local procedure GetApprovalURL(var RecRef: RecordRef): Text[1024]
     var
         ContiniaUserSetup: Record "CTS-CBF Continia User Setup";
