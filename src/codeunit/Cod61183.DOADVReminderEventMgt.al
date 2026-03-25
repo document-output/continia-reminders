@@ -5,7 +5,7 @@ codeunit 61183 "DOADV Reminder Event Mgt"
     var
         ReminderFunctions: Codeunit "DOADV DC Reminder Functions";
     begin
-        ReminderFunctions.UpdateMailBodyWithApprovalEntries(MailBody, FilterRecord);
+        ReminderFunctions.InsertUserApprovalEntriesToEmailBody(FilterRecord, MailBody);
     end;
 
     [BusinessEvent(false)]

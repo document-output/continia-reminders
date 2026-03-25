@@ -76,17 +76,7 @@ codeunit 61181 "DOADV Send DC Reminders via JQ"
             exit(EventEntry."Entry No.");
     end;
 
-    procedure CreateEventReg(FromEntryNo: Integer; ToEntryNo: Integer; EventArea: Option Status,Reminder)
-    var
-        EventReg: Record "CDC Event Register";
-    begin
-        EventReg.LockTable();
-        EventReg.Init();
-        EventReg."From Entry No." := FromEntryNo;
-        EventReg."To Entry No." := ToEntryNo;
-        EventReg.Area := EventArea;
-        EventReg.Insert(true);
-    end;
+
 
 
     local procedure QueueMailToContiniaUser(UserSetup: record "CTS-CBF Continia User Setup"; TemplateCode: Code[20])

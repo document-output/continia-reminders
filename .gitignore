@@ -1,3 +1,4 @@
 .alpackages/*.app
 .vscode/*.*
 *.app
+src/codeunit/ReminderFunc.txt
