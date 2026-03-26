@@ -2,7 +2,7 @@
 /// <summary>
 /// This codeunit is intended to be executed as Business Central Job Queue entry
 /// </summary>
-codeunit 61181 "DOADV Send DC Reminders via JQ"
+codeunit 61181 "DOADV Send DC Mails"
 {
     Permissions = tabledata "Approval Entry" = rm,
                   tabledata "CDC Event Register" = ri,
